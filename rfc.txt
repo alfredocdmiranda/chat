@@ -1,0 +1,666 @@
+                                                                        
+                                                            EXPERIMENTAL
+                            Alfredo Miranda <alfredocdmiranda@gmail.com>
+                                                               Nov 2014
+
+
+                    PSU Internet Relay Chat Protocol(PIRC)
+
+Abstract
+
+   PIRC protocol is based on IRC protocol which can be found its 
+   specifications on RFC 1459. PIRC is currently being developed and 
+   its purpose is train our skills to develop networking applications.
+   That is just a project for Internetworking Protocols class.
+
+   The PIRC protocol is a text-based protocol, with the simplest client
+   being any socket program capable of connecting to the server.
+
+Table of Contents
+
+   1. INTRODUCTION ................................................    1
+      1.1 Servers .................................................    2
+      1.2 Clients .................................................    2
+      1.3 Channels ................................................    2
+   2. THE PIRC SPECIFICATION ......................................    2
+      2.1 Overview ................................................    2
+      2.2 Character codes .........................................    2
+      2.3 Messages ................................................    3
+      2.4 Numeric replies .........................................    3
+   3. PIRC CONCEPTS ...............................................    3
+      3.1 One-to-one communication ................................    3
+      3.2 One-to-many .............................................    4
+         3.2.1 To a list ..........................................    4
+         3.2.2 To a group (channel) ...............................    4
+   4. MESSAGE DETAILS .............................................    4
+      4.1 Connection Registration .................................    4
+         4.1.1 Nickname message ...................................    4
+         4.1.2 Quit message .......................................    4
+      4.2 Channel operations ......................................    5
+         4.2.1 Join message .......................................    5
+         4.2.2 Topic message ......................................    5
+         4.2.3 List message .......................................    6
+         4.2.4 Kick message .......................................    6
+         4.2.5 Part message .......................................    6
+      4.3 Sending messages ........................................    7
+         4.3.1 Private messages ...................................    6
+      4.4 Miscellaneous messages ..................................    7
+         4.4.1 Kill message .......................................    7
+   5. REPLIES .....................................................    8
+      5.1 Error Replies ...........................................    8
+      5.2 Command responses .......................................    9
+   6. CLIENT AND SERVER AUTHENTICATION ............................   10
+   7. CURRENT IMPLEMENTATIONS DETAILS .............................   10
+   8. GRAMMAR RULES ...............................................   10
+      8.1 Nickname ................................................   10
+      8.2 Channel Name ............................................   10
+      8.3 Message .................................................   10
+   9. ISSUES ......................................................   10
+
+1.  INTRODUCTION
+
+   The PIRC (PSU Internet Relay Chat) protocol has been designed for the
+   Internetworking Protocol class of Portland State University. This 
+   document describes the current PIRC protocol.
+   
+   The PIRC protocol is a text-based protocol, with the simplest client
+   being any socket program capable of connecting to the server. Using
+   TCP/IP network protocol for its communication, any client is able to
+   connect to a PIRC server respecting its protocol.
+   
+   PIRC allows many people connect at the same server and send messages
+   through network. People can send private messages for many other 
+   people at the same time and join to many channels.
+
+1.1 Servers
+
+   The servers on PIRC protocol act like a single server. They can't
+   communicate with other servers, and they are just responsible for
+   manager all users and delivery their menssages correctly.
+
+1.2 Clients
+
+   PIRC clients are any system connected to a server which interact with
+   it.  Each client is distinguished from other clients by a unique
+   nickname having a maximum length of twenty (20) characters.  See the
+   protocol grammar rules for what may and may not be used in a
+   nickname.
+
+1.3 Channels
+
+   A channel is a named group of one or more clients which will all
+   receive messages addressed to that channel.  The channel is created
+   implicitly when the first client joins it, and the channel is closed
+   when the last client leaves it.  While channel exists, any client can
+   reference the channel using the name of the channel.
+
+   Channels names are strings of length up to 20 characters which 
+   starts with a '#'. See the protocol grammar rules for what may and 
+   may not be used in a channel name.
+
+   To create a new channel or become part of an existing channel, a user
+   is required to JOIN the channel.  If the channel doesn't exist prior
+   to joining, the channel is created and the creating user becomes a
+   channel operator. As part of the protocol, a user may be a part of 
+   several channels at once, but a limit of ten (10) channels is 
+   recommended as being ample for both experienced and novice users.  
+   Each server can implement its limit for user join to channels.
+
+1.3.1 Channel Operators
+
+   The channel operator (also referred to as admin) on a given channel 
+   is considered to 'own' that channel. Then, he has responsabilities,
+   like to keep order inside the channel and has some powers over the
+   channel.
+
+   The commands which may only be used by channel operators are:
+
+        KICK    - Eject a client from the channel
+        TOPIC   - Change the channel topic
+
+   A channel operator is identified by the '@' symbol next to their
+   nickname whenever it is associated with a channel.
+
+2. The PIRC Specification
+
+2.1 Overview
+
+   The protocol as described here allows any client connect and keep
+   a exchange message between the server and other clients.
+
+2.2 Character codes
+
+    It was chosen UTF-8 as official character set to be used in this
+    protocol. This character set was chosen because it support different
+    characters from different languages. Then, all clients and servers
+    must encode and decode all characters to UTF-8 before transmit.
+
+2.3 Messages
+
+   Servers and clients send each other messages which may or may not
+   generate a reply. If the message contains a valid command, as
+   described in later sections, the client should expect a reply as
+   specified but it is not advised to wait forever for the reply; client
+   to server communication is essentially asynchronous in nature.
+
+   Each PIRC message may consist of up to two main parts: the command, 
+   and the command parameters. The command, and all parameters are 
+   separated by one UTF-8 space character.
+
+   The command must either be a valid PIRC command UTF-8 text. If it is
+   an invalid command a error message will be returned to the client.
+
+   PIRC messages are always lines of characters terminated with a CR-LF
+   (Carriage Return - Line Feed) pair, and these messages shall not
+   exceed 512 characters in length, counting all characters including
+   the trailing CR-LF. Thus, there are 510 characters maximum allowed
+   for the command and its parameters.
+
+2.4 Numeric replies
+
+   Most of the messages sent to the server generate a reply of some
+   sort.  The most common reply is the numeric reply, used for both
+   errors and normal replies.  The numeric reply must be sent as one
+   message consisting of the sender prefix, the three digit numeric, and
+   the target of the reply.  A numeric reply is not allowed to originate
+   from a client; any such messages received by a server are silently
+   dropped. In all other respects, a numeric reply is just like a normal
+   message, except that the keyword is made up of 3 numeric digits
+   rather than a string of letters. A list of different replies is
+   supplied in section 5.
+
+3. PIRC Concepts.
+
+   This section is devoted to describing the actual concepts behind the
+   organization of the  PIRC  protocol and how the current 
+   implementations deliver different classes of messages.
+
+
+
+                          1--\
+                              A        B---4
+                          2--/ \      /
+                                3    5
+                                     
+                                      
+
+   Servers: A, B, C, D, E         Clients: 1, 2, 3, 4, 5
+
+                    [ Fig. 1. Sample small PIRC network ]
+
+3.1 One-to-one communication
+
+   Communication on a one-to-one basis is usually only performed by
+   clients, since servers just retransmit their messages. All the
+   messages are read by the servers which can do anything with them.
+
+   The following examples all refer to Figure 1 above.
+
+Example 1:
+     A message between clients 1 and 2 is seen and delivered by server A
+     , which sends it straight to client 2.
+
+Example 2:
+     A message between clients 1 and 4 is not possible, since PIRC does
+     not support communication between two servers.
+
+3.2 One-to-many
+
+   The main goal of PIRC is to provide a way for users do easily and
+   efficiently conferencing (one to many conversations).
+
+3.2.1 To a list
+
+   One of ways to use one-to-many conversation is using a list, which is
+   the least efficient style. The client just send a list of its 
+   destinations and the server retransmits the message without checking 
+   for duplicates, causing unnecessary traffic over network.
+
+3.2.2 To a group (channel)
+
+   The channel is the easiest way to send messages a whole group, it 
+   works like a multicast message. 
+   
+   A PIRC channel is dynamic, which users can join and leave anytime.
+
+4. Message details
+
+   On the following pages are descriptions of each message recognized by
+   the PIRC server and client. All commands described in this section
+   must be implemented by any server for this protocol.
+
+   
+   The server to which a client is connected is required to parse the
+   message, turn it in multiple messages, if there are more than 
+   argument, such as, many users or many channels to send a message.
+
+4.1 Connection Registration
+
+   The commands described here are used to register a connection with an
+   PIRC server as either a user or a server as well as correctly
+   disconnect.
+
+           1. Nick message
+           2. Quit message
+
+4.1.1 Nick message
+
+      Command: NICK
+   Parameters: <nickname>
+
+   Since PIRC protocol doesn't support name register, it is only 
+   necessary using a nickname for beginning a connection with the 
+   server.
+   
+   Anyone can use any nickname since that nickname is released and 
+   follow the rules of nicknames.
+   
+   Command NICK might also be used to change a nickname at anytime, but
+   following the last paragraph.
+
+   Numeric Replies:
+
+           ERR_NICKNAMEINUSE             RPL_NICKNAMECHANGED   
+
+   Example:
+
+   NICK Wiz                        ; User set a new nickname "Wiz".
+
+4.1.2 Quit
+
+      Command: QUIT
+   Parameters: [:<Quit message>]
+
+   A client session is ended with a quit message.  The server must close
+   the connection to a client which sends a QUIT message. If a "Quit
+   Message" is given, this will be sent instead of the default message,
+   the nickname.
+
+   If, for some other reason, a client connection is closed without the
+   client  issuing  a  QUIT  command  (e.g.  client  dies and EOF occurs
+   on socket), the server is required to fill in the quit  message  with
+   some sort  of  message  reflecting the nature of the event which
+   caused it to happen.
+
+   Numeric Replies:
+
+           None.
+
+   Examples:
+
+   QUIT :Gone to have lunch        ; Preferred message format.
+
+4.2 Channel operations
+
+   This group of messages is concerned with manipulating channels, their
+   properties (topic), and their users.
+
+4.2.1 Join message
+
+      Command: JOIN
+   Parameters: <channel>{,<channel>}
+
+   The JOIN command is used by client to start listening a specific
+   channel. Since all channels in the PIRC protocol are opened, everyone
+   can start listening any channel.
+
+   Once a user has joined a channel, they receive notice about all
+   commands their server receives which affect the channel. This
+   includes TOPIC, KICK, PART, QUIT and PRIVMSG.
+
+   If a JOIN is successful, it is sent to the user the channel's topic 
+   and the list of user who are on the channel.
+   
+   Channel's limit may be implemented by the server. Any limit is 
+   accepted.
+
+   Numeric Replies:
+
+           ERR_NEEDMOREPARAMS              ERR_CHANNELISFULL
+           ERR_NOSUCHCHANNEL               RPL_TOPIC
+           RPL_NOTOPIC
+
+   Examples:
+
+   JOIN #foobar                    ; join channel #foobar.
+
+   JOIN #foo,#bar                  ; join channels #foo and #bar.
+                                   
+4.2.2 Topic message
+
+      Command: TOPIC
+   Parameters: <channel> [:<topic>]
+
+   The TOPIC command is used to change or view the topic of a channel.
+   The topic for channel <channel> is returned if there is no <topic>
+   given.  If the <topic> parameter is present, the topic for that
+   channel will be changed. The topic parameter can just be modified by
+   the channel administrator, which usually is the creator.
+
+   Numeric Replies:
+
+           ERR_NEEDMOREPARAMS              ERR_NOPERMISSION 
+           RPL_TOPIC                       RPL_NOTOPIC
+
+   Examples:
+
+   TOPIC #test :New topic          ;User setting the topic.
+
+   TOPIC #test                     ;check the topic for #test.
+
+4.2.3 List message
+
+      Command: LIST
+   Parameters: [<channel>{,<channel>}]
+
+   The list message is used to list channels and their topics which are 
+   present in that server.  If  the <channel>  parameter  is  used,  
+   only  the  status  of  those channels is displayed. If just only
+   one <channel> is used, it will be displayed its topic and its user 
+   list.
+   
+   It is sent a RPL_LISTSTART to indicate that next messages will be the
+   list and a RPL_LISTEND to indicate that the list is over.
+
+   Numeric Replies:
+
+           ERR_NOSUCHCHANNEL               RPL_LISTSTART
+           RPL_LIST                        RPL_LISTEND
+           RPL_LISTNAME
+
+   Examples:
+
+   LIST                            ; List all channels.
+
+   LIST #twilight_zone,#42         ; List channels #twilight_zone and #42
+
+4.2.4 Kick command
+
+      Command: KICK
+   Parameters: <channel> <user> [:<comment>]
+
+   The KICK command can be  used  to  forcibly  remove  a  user  from  a
+   channel. Only a channel administrator may kick another user out of a 
+   channel.
+
+   Numeric Replies:
+
+           ERR_NEEDMOREPARAMS              ERR_NOSUCHCHANNEL
+           ERR_NOTONCHANNEL                ERR_NOPERMISSION
+
+   Examples:
+
+KICK #Melbourne Matthew         ; Kick Matthew from #Melbourne
+
+KICK #Finnish John :Speaking English
+                                ; Kick John from #Finnish using
+                                "Speaking English" as the reason
+                                (comment).
+
+   :WiZ JOIN #Twilight_zone        ; JOIN message from WiZ
+
+4.2.5 Part message
+
+      Command: PART
+   Parameters: <channel>{,<channel>}
+
+   The PART message causes the client sending the message to be removed
+   from the list of active users for all given channels listed in the
+   parameter string.
+
+   Numeric Replies:
+
+           ERR_NEEDMOREPARAMS              ERR_NOSUCHCHANNEL
+           ERR_NOTONCHANNEL
+
+   Examples:
+
+   PART #twilight_zone             ; leave channel "#twilight_zone"
+
+   PART #oz-ops,&group5            ; leave both channels "&group5" and
+                                   "#oz-ops".
+
+4.3 Sending messages
+
+   The main purpose of the PIRC protocol is to provide ways for clients 
+   to communicate with each other. PRIVMSG is the only command 
+   available which actually perform delivery of a text message
+   from one client to another.
+
+4.3.1 Private messages
+
+      Command: PRIVMSG
+   Parameters: <receiver>{,<receiver>} :<text to be sent>
+
+   PRIVMSG is used to send private messages between users.  <receiver>
+   is the nickname of the receiver of the message.  <receiver> can also
+   be a list of names or channels separated with commas.
+   
+   It could be sent more than one message, the client just have to use 
+   colon(':') and a space character to separete the messages. However, 
+   in this case it needs to have the same amount of receivers and 
+   messages.
+   
+   PRIVMSG might be used to send to users messages about what is 
+   happening on the server, like when someone is banned. When the server
+   redirect or send any message to an user, it switch the receiver(s)
+   to the author's message(might be the server).
+
+   Numeric Replies:
+
+           ERR_NEEDMOREPARAMS              ERR_CANNOTSENDTOCHAN
+           ERR_TOOMANYTARGETS              ERR_NOSUCHNICK
+           ERR_NOSUCHCHANNEL               
+
+   Examples:
+
+    PRIVMSG Angel :yes I'm here!                 ; Message to Angel.
+    PRIVMSG Angel,#newChan :yes I'm here!        ; Same message to Angel 
+                                                   and #newChan.
+    PRIVMSG Angel,#newChan :yes I'm here! :Hello newChan!        
+                                                ; Different message to 
+                                                  Angel and #newChan.
+
+4.4 Miscellaneous messages
+
+   Messages in this category do not fit into any of the above categories
+   but are nonetheless still a part of and required by the protocol.
+
+
+4.4.1 Kill message
+
+      Command: KILL
+   Parameters: <nickname> [:<comment>]
+
+   The KILL command is used to close connections which users are 
+   causing trouble in the server or any other issue. This command can 
+   just be used by the server administrator.
+
+   Clients which have automatic reconnect algorithms effectively make
+   this command useless since the disconnection is only brief.  It does
+   however break the flow of data and can be used to stop large amounts
+   of being abused. The servers should implement algorithms to keep 
+   these clients offline during certain time or any other approach.
+
+   Numeric Replies:
+
+           ERR_NEEDMOREPARAMS              ERR_NOPERMISSION
+           ERR_NOSUCHNICK                  
+
+
+   KILL David                ; Disconnect David from the server
+   KILL David :Flood         ; Disconnect David from the server using
+                               "Flood" as reason
+
+5. REPLIES
+
+   The following is a list of numeric replies which are generated in
+   response to the commands given above.  Each numeric is given with its
+   number, name and reply string.
+
+5.1 Error Replies.
+        400     ERR_UNKNOWNCOMMAND
+                    "<num> <command> :Unknown command"
+
+                - Returned to a registered client to indicate that the
+                  command sent is unknown by the server.
+
+        401     ERR_NEEDMOREPARAMS
+                    "<num> <command> :Not enough parameters"
+
+                - Returned by the server by numerous commands to
+                  indicate to the client that it didn't supply enough
+                  parameters.
+        
+        402     ERR_NOPERMISSION
+                    "<num> :No permission"
+                
+                 - Returned when a user tries some action which it 
+                 doesn't have permission to.
+        
+        403     ERR_INVALIDNAME
+                    "<num> <name> :Invalid name"
+                
+                - Used to indicate to user that the chosen name for
+                nickname or channel is invalid.
+        
+        404     ERR_NICKNAMEINUSE
+                    "<num> <nick> :Nickname is already in use"
+
+                - Returned when a NICK message is processed that results
+                  in an attempt to change to a currently existing
+                  nickname.
+        
+        405     ERR_NOSUCHNICK
+                    "<num> <nickname> :No such nick"
+
+                - Used to indicate the nickname parameter supplied to a
+                  command is currently unused.
+        
+        406     ERR_CHANNELISFULL
+                    "<num> <channel> :Cannot join channel"
+                
+                - Used to indicate when some user try to join a channel
+                which is full.
+        
+        407     ERR_NOSUCHCHANNEL
+                    "<num> <channel> :No such channel"
+
+                - Used to indicate the given channel name is invalid.
+        
+        408     ERR_NOTONCHANNEL
+                    "<num> <channel> :Nickname is not on channel"
+                
+                - Used to indicate that the given nickname is not on
+                  the channel given.
+        
+        409     ERR_TOOMANYCHANNELS
+                    "<num> :You have joined too many channels"
+                
+                - Sent to a user when they have joined the maximum
+                  number of allowed channels and they try to join
+                  another channel.
+        
+        410     ERR_CANNOTSENDTOCHAN
+                    "<num> <channel> :Cannot send to channel"
+
+                - Sent to a user who is either (a) not on a channel and 
+                is trying to send a PRIVMSG message to that channel.
+        
+        411     ERR_TOOMANYTARGETS
+                    "<num> :Too many targets"
+                
+                - Sent to a user when he is trying to send messages to a
+                big amount of targets  at the same time.
+
+5.2 Command responses.
+
+        300     RPL_LISTSTART
+                    "<num>"
+        
+        301     RPL_LIST
+                    "<num> <channel> :<topic>"
+        
+        302     RPL_LISTNAME
+                    "<num> <nickname>"
+                    
+                - Used to indicate that is a information about nickname
+                and not about channel and its topic.
+        
+        303     RPL_LISTEND
+                    "<num>"
+
+                - Replies RPL_LISTSTART, RPL_LIST, RPL_LISTEND mark
+                the start, actual replies with data and end of the
+                server's response to a LIST command.  If there are
+                no channels available to return, only the start
+                and end reply must be sent.
+
+        304     RPL_NOTOPIC
+                    "<num> <channel> :No topic is set"
+        
+        305     RPL_TOPIC
+                    "<num> <channel> :<topic>"
+
+                - When sending a TOPIC message to determine the
+                channel topic, one of two replies is sent.  If
+                the topic is set, RPL_TOPIC is sent back else
+                RPL_NOTOPIC.
+        
+        306     RPL_NICKNAMECHANGED
+                    "<num>"
+                
+                - This replie is used to indicate that nickname was
+                successfully changed.
+
+6. Client and server authentication
+
+   PIRC protocol doesn't have support to authentication.
+   
+   Since PIRC protocol doesn't support authentication, servers must 
+   implement any way to not allow any user to connect as admin user. It
+   is indicate just allow connections with admin user from clients with 
+   the same IP of the server.
+
+7. Current implementations
+
+   The only current known implementation of this protocol is the PIRC 
+   server and client for class Internetworking Protocols of Portland 
+   State University.
+
+8. Grammar Rules
+   
+   In this section will see what is allow and what is not allow to use
+   in nicknames, channel names and messages.
+
+8.1 Nickname
+    
+    Nickname might have twenty (20) characters maximum lenght. It is
+    case sensitive and might use [A-Z], [a-z], [0-9] and '^','-','_',
+    '|'.
+
+8.2 Channel name
+    Channel name might have twenty (20) characters maximum lenght. It is
+    case sensitive and might use [A-Z], [a-z], [0-9] and '^','-','_',
+    '|'. The first character must be a '#'.
+
+8.3 Message
+    Almost all character are allowed in the messages written by users
+    since their clients might process some special characters adding a
+    backslash to them, such as ':' or '\'. 
+
+9. Issues
+   
+   Currently, the PIRC protocol has a significantly list of issues which
+   need to be solved. Major issues are in the security area. 
+   Some issues:
+   
+   - Authentication
+   - Flood
+   - Ban List
+   - Configuration file
+   - Scalability
+   - Connection 'Liveness'
+   - Tracking nickname changes
+   
+   These issues should be implemented in future versions of this protocol.
