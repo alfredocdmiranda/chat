@@ -5,14 +5,15 @@ __author__ = "Alfredo Miranda"
 __version__ = "0.3"
 __description__ = "Server for project of an IRC-based protocol to Interworking Protocols class."
 
+import argparse
 import select
 import socket
 import sys
 import signal
 import os
-from communication import send, receive, BUFFSIZE
 from datetime import datetime, timedelta
 
+from communication import send, receive, BUFFSIZE
 from daemon import Daemon
 
 WAIT_TIMEOUT = 5
@@ -22,14 +23,12 @@ LIMIT_CHANNEL_USER = 10
 FORBID_CHARS_NICK = ':!@#$%'
 FORBID_CHARS_CHAN = ':!@#$%'
 
-DEBUG = True
-
 class Channel(object):
     def __init__(self, name, owner, topic=""):
         self.name = name
         self.owner = owner
         self.topic = topic
-        self.users = [owner]
+        self.users = [self.owner]
 
 class Client(object):
     def __init__(self, nickname, socket):
@@ -701,7 +700,7 @@ class DaemonServer(Daemon):
             server = PIRCServer()
 
             # redirect standard file descriptors
-            if not DEBUG:
+            if not args.debug:
                 sys.stdout.flush()
                 sys.stderr.flush()
                 si = open(self.stdin, 'r')
@@ -720,22 +719,27 @@ class DaemonServer(Daemon):
             print("Server can't be started!")
             print("ERROR: {0}".format(str(err)))
 
-if __name__ == '__main__':
-    daemon = DaemonServer('/var/run/pirc-server')
-    if len(sys.argv) == 2:
-        if sys.argv[1] == 'start':
-            print("Starting...")
-            daemon.start()
-        elif sys.argv[1] == 'stop':
-            print("Stopping...")
-            daemon.stop()
-        elif sys.argv[1] == 'restart':
-            print("Restarting...")
-            daemon.restart()
-        else:
-            print("Unknown command")
-            print("Use: start|stop|restart")
-            sys.exit(2)
-    elif len(sys.argv) <= 1:
-        print("It is missing arguments, use: ./server [start|stop|restart]")
+def arguments():
+    global args
+    
+    parser = argparse.ArgumentParser(prog="PIRC Server", description=__description__)
+    parser.add_argument("action", help="Start, stop, restart the server.", choices=["start", "stop", "restart"])
+    parser.add_argument("-d", "--debug", help="Initialize the server in Debug mode", action="store_true")
+    parser.add_argument("-v", "--version", action='version',
+                        version='%(prog)s Version {0}'.format(__version__),
+                        help="Shows application version.")
+    
+    args = parser.parse_args()
 
+if __name__ == '__main__':
+    arguments()
+    daemon = DaemonServer('/var/run/pirc-server')
+    if args.action == "start":
+        print("Starting...")
+        daemon.start()
+    elif args.action == 'stop':
+        print("Stopping...")
+        daemon.stop()
+    elif args.action == 'restart':
+        print("Restarting...")
+        daemon.restart()
