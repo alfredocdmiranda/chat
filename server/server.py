@@ -506,7 +506,7 @@ class PIRCServer(object):
                                 else:
                                     #ERR_CANNOTSENDTOCHAN
                                     msg = "410 {0} :Cannot send to channel".format(a)
-                                    dest = socket 
+                                    dest = socket
                                     msgs.append([msg, dest])
                             else:
                                 #ERR_NOSUCHCHANNEL
@@ -561,7 +561,7 @@ class PIRCServer(object):
         else:
             #ERR_NEEDMOREPARAMS
             dest = socket
-            msg = "401 {0} :Not enough parameters".format(command)        
+            msg = "401 {0} :Not enough parameters".format(command)
                 
         return msgs
 
@@ -575,7 +575,7 @@ class PIRCServer(object):
             nickname = arguments[0][0]
             dest = socket
                 
-            if self.validate_grammar(nickname, "nick"):        
+            if self.validate_grammar(nickname, "nick"):
                 if nickname in self.clients_nick:
                     #ERR_NICKNAMEINUSE
                     msg = "404 {0} :Nickname is already in use".format(nickname)
@@ -630,9 +630,9 @@ class PIRCServer(object):
 
             try:
                 inputready, outputready, exceptready = select.select(self.inputs, self.outputs, [])
-            except select.error, e:
+            except select.error as e:
                 break
-            except socket.error, e:
+            except socket.error as e:
                 break
 
             for s in inputready:

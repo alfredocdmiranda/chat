@@ -26,7 +26,7 @@ class PIRClient(object):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
     def parser_cmd(self, cmd):
-        #Receive line from the user's prompt and separete between 
+        #Receive line from the user's prompt and separete between
         #command and argument, before to send to server.
         command = ''
         arguments = []
@@ -82,7 +82,7 @@ class PIRClient(object):
                 msg += " {0}\n\r".format(self.change_nick)
                 return msg
             else:
-                print("There is something wrong. Use '/nick <nick>'")   
+                print("There is something wrong. Use '/nick <nick>'")
                 return None
         elif cmd == "msg":
             msg = "PRIVMSG"
@@ -313,7 +313,7 @@ class PIRClient(object):
             self.prompt = "[{0}]>".format(nickname)
             self.connected = True
             print("You are connect to {0}.".format(server))
-        except socket.error, e:
+        except socket.error as e:
             self.socket.close()
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             print('Could not connect to chat server {0} at port {1}'.format(server, port))
@@ -338,7 +338,7 @@ class PIRClient(object):
                 sys.stdout.write(self.prompt)
                 sys.stdout.flush()
                 data = sys.stdin.readline().strip()
-                if data: 
+                if data:
                     if data.startswith("/"):
                         cmd, arguments = self.parser_cmd(data)
                         if cmd == 'server':
