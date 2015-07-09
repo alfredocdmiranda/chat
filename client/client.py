@@ -286,6 +286,8 @@ class PIRClient(object):
     def connect(self, args):
         #It is responsible for make the first contact and connection
         #with the server.
+        
+        #TODO Improve arguments parser
         if len(args) < 2:
             #Verify if there are all parameters for connection
             print("It is missing arguments")
@@ -327,7 +329,7 @@ class PIRClient(object):
                 sys.stdout.write('\r')
             sys.stdout.flush()
             return False
-        
+
         return True
         
     def loop(self):
@@ -347,6 +349,8 @@ class PIRClient(object):
                             print("You must connect to a server first. Use '/server <server> <nickname> [<port>]'.")
             except KeyboardInterrupt:
                 sys.exit(1)
+            except BaseException as err:
+                print(err)
 
         while not self.flag:
             try:
@@ -379,6 +383,7 @@ class PIRClient(object):
                         else:
                             #If socket is enable, but there is no data,
                             #it means that server closed connection.
+                            #TODO After a server disconnects, do not exit, just restart.
                             print('Server disconnected.')
                             self.flag = True
                             break
