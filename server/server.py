@@ -101,7 +101,7 @@ class PIRCServer(object):
                  arguments[i] = arguments[i][1:].split(" :")
              else:
                 arguments[i] = arguments[i].split(",")
-        print command, arguments
+        print(command, arguments)
         
         return command, arguments
 
@@ -390,7 +390,6 @@ class PIRCServer(object):
                     #RPL_LISTEND
                     msg = "303"
                 else:
-                    print "Aqui 5"
                     #RPL_NOSUCHCHANNEL
                     msg = "407 {0} :No such channel".format(chan_name)
                 msgs.append([msg, dest])
@@ -700,18 +699,14 @@ class DaemonServer(Daemon):
     def main(self):
         try:
             server = PIRCServer()
-            
-
-            #print("Server is running...")
-            #print("Executando em {0}:{1}".format(SETTINGS['SERVER'], SETTINGS['PORT']))
 
             # redirect standard file descriptors
             if not DEBUG:
                 sys.stdout.flush()
                 sys.stderr.flush()
-                si = file(self.stdin, 'r')
-                so = file(self.stdout, 'a+')
-                se = file(self.stderr, 'a+', 0)
+                si = open(self.stdin, 'r')
+                so = open(self.stdout, 'a+')
+                se = open(self.stderr, 'a+', 0)
                 os.dup2(si.fileno(), sys.stdin.fileno())
                 os.dup2(so.fileno(), sys.stdout.fileno())
                 os.dup2(se.fileno(), sys.stderr.fileno())

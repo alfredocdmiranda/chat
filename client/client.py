@@ -388,8 +388,7 @@ class PIRClient(object):
                 self.socket.close()
                 break
             except socket.error as e:
-                print e
-                pass
+                print(e)
 
 if __name__ == '__main__':
     client = PIRClient()
